@@ -6,6 +6,9 @@ I will try to keep the naming same as him to avoid confusion for future me as we
 
 ## Things i Would like to note down so i dont forget again
 
+### Never forget setting grad to zero
+Zero grad everytime, don't accumulate gradients across epochs
+
 ### Underscores in python
 
 The single underscore before a var:
