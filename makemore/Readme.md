@@ -16,4 +16,7 @@ Thumb rules
 
 Take care which direction is non existent
 
-##
+## torch.tensor vs torch.Tensor
+ 1. They are different!
+ 2. tensor retains dype, Tensor convers to float
+ > torch.tensor infers the dtype automatically, while torch. Tensor returns a torch.FloatTensor. I would recommend to stick to torch.tensor, which also has arguments like dtype, if you would like to change the type.

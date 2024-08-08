@@ -44,6 +44,7 @@ g = torch.Generator().manual_seed(2147483647)
 
 P = N.float()
 P/= P.sum(1,keepdim=True)
+
 for _ in range(10):
     out = []
     ix = 0
@@ -55,5 +56,6 @@ for _ in range(10):
             break
         out+=[c]
     print(''.join(out))
+
 
         
