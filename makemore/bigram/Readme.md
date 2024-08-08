@@ -1,3 +1,6 @@
+# Pending work
+Can't figure out why the generated words don't match from the video. Everything looks the same. Figure it out.
+
 # Things I would not like to forget
 
 ## Multinomial has replacement set to False by default
