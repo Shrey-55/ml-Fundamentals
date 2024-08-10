@@ -1,5 +1,6 @@
 import torch
 import torch.nn.functional as F
+import matplotlib.pyplot as plt
 
 words = open('names.txt','r').read().splitlines()
 chars = sorted(list(set(''.join(words))))
@@ -10,66 +11,118 @@ vocab_size = 27
 
 ## Making dataset for MLP
 
-context_len = 3
+block_size = 3
 
-X, Y = [], []
-for w in words[:5]:
-    print (w)
-    context = [0] * context_len
-    for ch in w+'.':
-        ix = stoi[ch]
-        X. append (context)
-        Y.append (ix)
-        print(''.join(itos[i] for i in context),'--->',itos[ix])
-        context = context[1:] + [ix]
+def build_dataset(words):  
+  X, Y = [], []
+  for w in words:
 
-X = torch.tensor(X)
-Y = torch.tensor(Y)
-"""
-    X.shape is [32,3] when 5 words
-    or [num_example, context_len]
+    #print(w)
+    context = [0] * block_size
+    for ch in w + '.':
+      ix = stoi[ch]
+      X.append(context)
+      Y.append(ix)
+      #print(''.join(itos[i] for i in context), '--->', itos[ix])
+      context = context[1:] + [ix] # crop and append
 
-    Now we want to represent each input as a number, which we did using
-    the one_hot encoding, when the context lenght was 1
+  X = torch.tensor(X)
+  Y = torch.tensor(Y)
+  print(X.shape, Y.shape)
+  return X, Y
 
-    Using one_hot encoding now would be very inefficient as we are dealing with a chunk of characters
-    instead of just one
-    So, the idea is to encode each letter in a 2 dimensional(earlier we used a vector of size 27 for each letter)
-    trainable vector and learn the encoding too
+import random
+random.seed(42)
+random.shuffle(words)
+n1 = int(0.8*len(words))
+n2 = int(0.9*len(words))
 
-"""
+Xtr, Ytr = build_dataset(words[:n1])
+Xdev, Ydev = build_dataset(words[n1:n2])
+Xte, Yte = build_dataset(words[n2:])
+
 g = torch.Generator().manual_seed(123)
-C = torch.randn((vocab_size,2), requires_grad= True) # The trainable encoding we talked about
-W1 = torch.randn((6,100), requires_grad=True) # Size of weight of each node should be same as the input size
-b1 = torch.randn(100)
-W2 = torch.randn((100,vocab_size)) # Since output size is vocab size here
-b2 = torch.randn(vocab_size)
-parameters = [C,W1,b1,W2,b2]
+C = torch.randn((27, 10), generator=g)
+W1 = torch.randn((30, 200), generator=g)
+b1 = torch.randn(200, generator=g)
+W2 = torch.randn((200, 27), generator=g)
+b2 = torch.randn(27, generator=g)
+parameters = [C, W1, b1, W2, b2]
+
+
 for p in parameters:
     p.requires_grad = True
 
-"""
-    emb@W is _,100
-    b is 100
-    shifting to left till we can gives
-    b is  1, 100
-    This is what we want, one number - bias of that neuron, add to only that neuron
-    Correct
-"""
+lre = torch.linspace(-3, 0, 1000)
+lrs = 10**lre
+lri = []
+lossi = []
+stepi = []
 
-#Forward pass
-
-emb = C[X] # Yes, the indexing in pytorch is amazing
-h = torch.tanh(emb.view(-1,6)@W1 + b1) # Good practice to verify broadcasting
-logits = h@W2 + b2
-# counts = logits.exp()
-# prob = counts/ counts.sum(1,keepdims=True)
-# loss = -prob[torch.arange(32),Y].log().mean()
-loss = F.cross_entropy(logits, Y)
-
-#Backward pass
-for p in parameters:
+for i in range(20000):
+  
+  # minibatch construct
+  ix = torch.randint(0, Xtr.shape[0], (32,))
+  
+  # forward pass
+  emb = C[Xtr[ix]] # (32, 3, 10)
+  h = torch.tanh(emb.view(-1, 30) @ W1 + b1) # (32, 200)
+  logits = h @ W2 + b2 # (32, 27)
+  loss = F.cross_entropy(logits, Ytr[ix])
+  #print(loss.item())
+  
+  # backward pass
+  for p in parameters:
     p.grad = None
+  loss.backward()
+  
+  # update
+  #lr = lrs[i]
+  lr = 0.1 if i < 100000 else 0.01
+  for p in parameters:
+    p.data += -lr * p.grad
+
+  # track stats
+  #lri.append(lre[i])
+  stepi.append(i)
+  lossi.append(loss.log10().item())
+
+#print(loss.item())
+plt.plot(stepi, lossi)
+plt.show()
+
+## Train loss
+emb = C[Xtr] # (32, 3, 2)
+h = torch.tanh(emb.view(-1, 30) @ W1 + b1) # (32, 100)
+logits = h @ W2 + b2 # (32, 27)
+loss = F.cross_entropy(logits, Ytr)
+print("train loss",loss)
+
+## Dev loss
+emb = C[Xdev] # (32, 3, 2)
+h = torch.tanh(emb.view(-1, 30) @ W1 + b1) # (32, 100)
+logits = h @ W2 + b2 # (32, 27)
+loss = F.cross_entropy(logits, Ydev)
+print("dev loss",loss)
 
 
+# sample from the model
+g = torch.Generator().manual_seed(212)
+
+for _ in range(20):
+    
+    out = []
+    context = [0] * block_size # initialize with all ...
+    while True:
+      emb = C[torch.tensor([context])] # (1,block_size,d)
+      h = torch.tanh(emb.view(1, -1) @ W1 + b1)
+      logits = h @ W2 + b2
+      probs = F.softmax(logits, dim=1)
+      ix = torch.multinomial(probs, num_samples=1, generator=g).item()
+      context = context[1:] + [ix]
+      out.append(ix)
+      if ix == 0:
+        break
+    
+    print(''.join(itos[i] for i in out))
 
