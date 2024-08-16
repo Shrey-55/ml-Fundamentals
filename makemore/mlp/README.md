@@ -1,4 +1,4 @@
-# Things I wouldn't like to forget
+# Things I wouldn't like to forget(again)
 
 ## Indexing in pytorch
 While indexing a tensor in pytorch with a list and a tensor, it might work differently. See below for example

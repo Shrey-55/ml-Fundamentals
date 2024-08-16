@@ -1,7 +1,4 @@
-# Pending work
-Can't figure out why the generated words don't match from the video. Everything looks the same. Figure it out.
-
-# Things I would not like to forget
+# Things I would not like to forget(again)
 
 ## Multinomial has replacement set to False by default
 Always set
@@ -23,3 +20,9 @@ Take care which direction is non existent
  1. They are different!
  2. tensor retains dype, Tensor convers to float
  > torch.tensor infers the dtype automatically, while torch. Tensor returns a torch.FloatTensor. I would recommend to stick to torch.tensor, which also has arguments like dtype, if you would like to change the type.
+
+
+
+# Pending work -- Done
+Can't figure out why the generated words don't match from the video. Everything looks the same. Figure it out
+Generator would generate same numbers only if the device is same too, not just the seed
